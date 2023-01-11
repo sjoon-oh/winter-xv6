@@ -326,7 +326,20 @@ sys_open(void)
 
   f->type = FD_INODE;
   f->ip = ip;
-  f->off = 0;
+
+  // Exercise 8
+  // O_TRUNC: If opened with write req, delete 
+  // all data and make the size 0.
+  if (omode & O_TRUNC && !(omode & O_RDONLY))
+    f->ip->size = 0;
+
+  // O_APPEND: Add data at the end of the file. 
+  // In this implementation, O_APPEND can be only 
+  // activated with O_WRONLY.
+  if (omode & O_APPEND && (omode & O_WRONLY))
+    f->off = f->ip->size;
+  else
+    f->off = 0;
   f->readable = !(omode & O_WRONLY);
   f->writable = (omode & O_WRONLY) || (omode & O_RDWR);
   return fd;
@@ -441,4 +454,50 @@ sys_pipe(void)
   fd[0] = fd0;
   fd[1] = fd1;
   return 0;
+}
+
+
+// Exercise 7: lseek implementation.
+//
+int
+sys_lseek(void)
+{
+  int fd, offset, whence;
+
+  struct proc* curproc = myproc();
+  int curoff = curproc->ofile[fd]->off;
+
+  // First arg: int fd
+  if (argint(0, &fd) < 0) return -1;
+  if (argint(1, &offset) < 0) return -1;
+  if (argint(2, &whence) < 0) return -1;
+
+  // Error handling, file descriptor range.
+  if (fd < 3) return -1;
+
+  // Priority: SEEK_SET > SEEK_END > SEEK_CUR
+  if (whence == SEEK_SET)
+  {
+    curproc->ofile[fd]->off = offset;
+    return offset;
+  }
+  else if (whence == SEEK_END)
+  {
+    curoff = curproc->ofile[fd]->ip->size - offset;
+    if (curoff < 0) return -1;
+    
+    curproc->ofile[fd]->off = curoff;
+    return curoff;
+  }
+  else if (whence == SEEK_CUR)
+  {
+    curoff += offset;
+
+    if (curoff > curproc->ofile[fd]->ip->size)
+      return -1;
+
+    else return curoff;
+  }
+  else
+    return -1;
 }
