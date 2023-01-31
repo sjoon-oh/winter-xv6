@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
-#include <ranlib.h>
 #include <time.h>
 
 #define BUCKET_SIZE 10
@@ -181,7 +180,7 @@ int main(int argc, char *argv[]) {
     }
 
     end = clock();
-    //display();
+    display();
 
     free(cmdarr);
     free(hashTable);
